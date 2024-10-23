@@ -5,11 +5,152 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="description" content="<%= metaTags.description %>">
     <meta name="keywords" content="<%= metaTags.keywords %>">
-    <title><%= metaTags.title %></title>
+    <title><%= metaTags.title %></title><script>
+        // Initialize the game when the page loads
+        document.addEventListener('DOMContentLoaded', function() {
+            /**
+			 * SpriteManager class to handle sprite retrieval and color manipulation.
+			 */
+			class SpriteManager {
+				constructor() {
+					this.sprites = {};  // Object to store all sprite types
+				}
+
+				/**
+				 * Adds a sprite to the manager.
+				 * @param {string} type - The type of the sprite (e.g., 'grass', 'floor').
+				 * @param {string} imagePath - The path to the sprite image (e.g., 'grass.png').
+				 * @param {number} spriteWidth - The width of each sprite in pixels (16 for 16x16).
+				 * @param {number} spriteHeight - The height of each sprite in pixels (16 for 16x16).
+				 */
+				addSprite(type, imagePath, spriteWidth, spriteHeight) {
+					console.log(`Adding sprite type: ${type} with path: ${imagePath}`);  // Debug log
+					this.sprites[type] = {
+						imagePath: imagePath,  // Automatically store the path
+						spriteWidth: spriteWidth,
+						spriteHeight: spriteHeight,
+						items: []  // Items will be populated when the image loads
+					};
+					this._loadSpriteImage(type, imagePath, spriteWidth, spriteHeight);
+				}
+
+				/**
+				 * Loads the sprite image and calculates how many 16x16 tiles fit.
+				 * @param {string} type - The type of the sprite.
+				 * @param {string} imagePath - Path to the image.
+				 * @param {number} spriteWidth - Width of a single sprite tile.
+				 * @param {number} spriteHeight - Height of a single sprite tile.
+				 * @private
+				 */
+				_loadSpriteImage(type, imagePath, spriteWidth, spriteHeight) {
+					const img = new Image();
+					img.src = imagePath;
+					
+					img.onerror = () => {
+						console.error(`Error loading image at path: ${imagePath}`);
+					};
+
+					img.onload = () => {
+						const cols = Math.floor(img.width / spriteWidth);  // Number of columns
+						const rows = Math.floor(img.height / spriteHeight);  // Number of rows
+						const totalItems = rows * cols;  // Total number of 16x16 tiles
+
+						// Generate positions for each tile (16x16 blocks)
+						for (let i = 0; i < totalItems; i++) {
+							const x = (i % cols) * spriteWidth;  // X coordinate of tile
+							const y = Math.floor(i / cols) * spriteHeight;  // Y coordinate of tile
+							this.sprites[type].items.push({ index: i, x: x, y: y });
+						}
+						// Log the generated items
+						console.log(`Generated ${totalItems} items for sprite type "${type}":`, this.sprites[type].items);
+						
+					};
+				}
+
+				/**
+				 * Retrieves a sprite by type and item number.
+				 * @param {Object} request - Object containing type and item index.
+				 * @returns {Object|null} - The sprite data or null if not found.
+				 */
+				getSprite(request) {
+					const { type, item } = request;
+					const spriteInfo = this.sprites[type];
+
+					if (spriteInfo && spriteInfo.items[item]) {
+						return {
+							imagePath: spriteInfo.imagePath,  // Automatically uses the stored path
+							position: spriteInfo.items[item],  // Gets the position of the requested item
+							color: request.color || 'default'
+						};
+					} else {
+						console.error(`Sprite of type "${type}" or item "${item}" not found.`);
+						return null;
+					}
+				}
+			}
+
+			// Example usage of SpriteManager
+			const spriteManager = new SpriteManager();
+
+			// Add 'grass' sprite type, stored in the ./sprites directory as a sprite sheet
+			spriteManager.addSprite('grass', '/sprites/grass.png', 16, 16);
+
+			// Add 'floor' sprite type
+			spriteManager.addSprite('floor', '/sprites/floor.png', 16, 16);
+
+			let grassSprite;
+			
+			// Retrieve the first grass tile (index 0)
+			const checkSpritesLoaded = setInterval(async () => {
+				grassSprite = await spriteManager.getSprite({ type: 'grass', item: 1 }); // Get first tile
+				if (grassSprite) {
+					clearInterval(checkSpritesLoaded); // Clear interval once sprite is available
+					console.log('Successfully retrieved grass sprite:', grassSprite);
+					initializeGame();
+				}
+			}, 100); // Check every 100ms until loaded
+
+			/**
+			 * Function to initialize the game and add the grass sprite to the canvas.
+			 */
+			function initializeGame() {
+				 // Get the canvas and context
+				const canvas = document.getElementById('gameCanvas');
+				const ctx = canvas.getContext('2d');
+
+				// Function to draw a sprite at specific coordinates
+				function drawSprite(type, itemIndex, x, y) {
+					const sprite = spriteManager.getSprite({ type, item: itemIndex });
+					
+					if (sprite) {
+						const img = new Image();
+						img.src = sprite.imagePath;
+
+						img.onload = () => {
+							// Draw the sprite using the coordinates for its position
+							ctx.drawImage(img, sprite.position.x, sprite.position.y, spriteManager.sprites[type].spriteWidth, spriteManager.sprites[type].spriteHeight, x, y, 16, 16);
+						};
+					}
+				}
+
+				// Example usage of drawing sprites
+				const grassSprite = spriteManager.getSprite({ type: 'grass', item: 0 }); // First grass tile
+				if (grassSprite) {
+					drawSprite('grass', 0, 50, 50); // Draw at position (50, 50)
+				}
+
+				const floorSprite = spriteManager.getSprite({ type: 'floor', item: 0 }); // Second floor tile
+				if (floorSprite) {
+					drawSprite('floor', 1, 70, 70); // Draw at position (70, 70)
+				}
+			}
+
+        });
+    </script>
     <style>
         #gameCanvas {
-            width: 800px;
-            height: 600px;
+            width: 640px;
+            height: 480px;
             background-color: #f0f0f0; /* Default background color */
             border: 1px solid #000;
             position: relative;
@@ -22,10 +163,9 @@
 
     <!-- Game canvas and controls -->
     <div id="game-container">
-        <canvas id="gameCanvas"></canvas>
+        <canvas id="gameCanvas" width="640" height="480"></canvas>
     </div>
 
     <script src="/socket.io/socket.io.js"></script>
-    <script src="/js/builder.js"></script>
 </body>
 </html>
