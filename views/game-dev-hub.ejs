@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="<%= metaTags.description %>">
+    <meta name="keywords" content="<%= metaTags.keywords %>">
+    <title><%= metaTags.title %></title>
+    <style>
+        #gameCanvas {
+            width: 800px;
+            height: 600px;
+            background-color: #f0f0f0; /* Default background color */
+            border: 1px solid #000;
+            position: relative;
+        }
+    </style>
+</head>
+<body>
+    <h1>Welcome to the Game Dev Central Hub</h1>
+    <p>Create your pixel-based side scroller game and invite others to play!</p>
+
+    <!-- Game canvas and controls -->
+    <div id="game-container">
+        <canvas id="gameCanvas"></canvas>
+    </div>
+
+    <script src="/socket.io/socket.io.js"></script>
+    <script src="/js/builder.js"></script>
+</body>
+</html>
